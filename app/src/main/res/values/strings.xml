@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">BeaconDemoApp</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="title_activity_start_hunting">StartHuntingActivity</string>
+    <string name="title_activity_hunting_explore">HuntingExploreActivity</string>
+    <string name="title_activity_finish_hunting">FinishHuntingActivity</string>
+    <string name="beacon_claim_header">Congratulation. You found the beacon!!!</string>
+
+<!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+
+</resources>
