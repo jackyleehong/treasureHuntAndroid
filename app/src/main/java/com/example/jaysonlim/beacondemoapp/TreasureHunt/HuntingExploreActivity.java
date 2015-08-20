@@ -91,6 +91,7 @@ public class HuntingExploreActivity extends Activity {
         setContentView(R.layout.activity_hunting_explore);
         beaconsList = new ArrayList<>();
         beaconManager = new BeaconManager(this);
+
         detected = new HashSet<Integer>();
         tempListForBL = new ArrayList<>();
         tempListForBs = new ArrayList<>();
@@ -174,11 +175,29 @@ public class HuntingExploreActivity extends Activity {
         beaconManager.setRangingListener(new BeaconManager.RangingListener() {
             @Override
             public void onBeaconsDiscovered(Region region, final List<Beacon> beacons) {
+               final double[] newPos = new double[100000];
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
 
                         getActionBar().setSubtitle("Found beacons: " + beacons.size());
+
+                        //remove beacon on bs.
+                        Iterator<Beacon> removeBeaconbs = bs.iterator();
+                        //  tempListForBs = bs;
+                        while(removeBeaconbs.hasNext()){
+                            Beacon b = removeBeaconbs.next();
+                            if(!beacons.contains(b) ){
+                                removeBeaconbs.remove();
+                            }else
+                            if (oriPos != newPos) {
+                                removeBeaconbs.remove();
+                            }else{
+                                continue;
+                            }
+
+                        }
+                        //fixed list for used to compare whether th beacon is out of range.
                         for (Beacon rangedbeacon : beacons) {
                             //add beacon to hash set to avoid duplicate
                             if (!beaconsList.contains(rangedbeacon)) {
@@ -187,33 +206,23 @@ public class HuntingExploreActivity extends Activity {
                                 Log.d("added beacon", rangedbeacon.getMajor() + "");
                             }
                         }
-                        /*if(bs != null) {
-                            for (Beacon rangedBeacon : bs) {
-                                updateDistanceView(rangedBeacon,dotView[rangedBeacon.getMajor()]);
-                                Log.d("updated the distance", "updated beacon distance major " + rangedBeacon.getMajor());
-                            }
-                        }*/
+
                     }
 
                 });
                 Log.d("destination", "I reached here!!!");
 
-                //Create and find the the position of dotView.
-                for(Beacon beacon: beaconsList) {
+                //Create and update the the position of dotView.
+                for(Beacon beacon: beacons) {
 
 
                     if (!bs.contains(beacon)) {
                         bs.add(beacon);
-                       /* dotView[beacon.getMajor()] = new ImageView(HuntingExploreActivity.this);// dotView created here....
-                        Log.d("new DotView", "New dotView Created");
-                        findBeaconLocation(beacon, dotView[beacon.getMajor()]);
-                        Log.d("added the dotview", "updated beacon dotview major" + beacon.getMajor());*/
                     }else{
                         continue;
                     }
 
                 }
-                double[] newPos = new double[100000];
                 //Remove the dotView which are not inside the list of beacons.
                 for(Beacon bc: bs){
                     if(beacons.contains(bc)) {
@@ -229,64 +238,34 @@ public class HuntingExploreActivity extends Activity {
                             continue;
                         }
                     }
-                    if(!beacons.contains(bc)){
-                        fl.removeView(dotView[bc.getMajor()]);
-                        Log.d("RemoveView", "View Removed");
-                    }
-                   /* if(!beacons.contains(bc)){
-                        fl.removeView(dotView[bc.getMajor()]);
-                        Log.d("RemoveView", "View Removed");
-                    }
-*/
+
                 }
-            /*    if(tempListForBs!=null) {
-                    for(Beacon b : tempListForBs){
-                        if(!beacons.contains(b)) {
-                            fl.removeView(dotView[b.getMajor()]);
-                            Log.d("RemoveView", "View Removed");
-                        }
+
+                for(Beacon bc : beaconsList) {
+                    if (!beacons.contains(bc)) {
+                        fl.removeView(dotView[bc.getMajor()]);
+                        Log.d("RemoveView", "View Removed");
                     }
-                }*/
+                }
+
 
                 //remove beacon on beaconList.
                 Iterator<Beacon> removeBeaconL = beaconsList.iterator();
               //  tempListForBL = beaconsList;
-                while(removeBeaconL.hasNext()){
+                while(removeBeaconL.hasNext()) {
                     Beacon b = removeBeaconL.next();
-                    if(!beacons.contains(b)){
+                    if (!beacons.contains(b)) {
                         removeBeaconL.remove();
-                    }else
-                        if (oriPos != newPos) { // problem here....remove anyhow caused cant detect properly
-                            removeBeaconL.remove();
-                        }else{
-                            continue;
-                        }
+                    }
 
                 }
 
-                //remove beacon on bs.
-                Iterator<Beacon> removeBeaconbs = bs.iterator();
-              //  tempListForBs = bs;
-                while(removeBeaconbs.hasNext()){
-                    Beacon b = removeBeaconbs.next();
-                    if(!beacons.contains(b) ){
-                        removeBeaconbs.remove();
-                    }else
-                        if (oriPos != newPos) {
-                            removeBeaconbs.remove();
-                        }else{
-                            continue;
-                        }
 
-                }
             }
 
         });
 
-
-
-
-                                               /* for (Beacon rangedbeacon : beaconsList) {
+            /* for (Beacon rangedbeacon : beaconsList) {
 
                                                 StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
                                                 StrictMode.setThreadPolicy(policy);
@@ -413,6 +392,8 @@ public class HuntingExploreActivity extends Activity {
                                 Beacon eachBeacon = beacon[i];
                                 findBeaconLocation(eachBeacon);
                             }*/
+
+
 
 
 
