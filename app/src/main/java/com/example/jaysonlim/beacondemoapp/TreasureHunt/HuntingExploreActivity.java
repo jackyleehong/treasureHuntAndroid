@@ -67,6 +67,7 @@ public class HuntingExploreActivity extends Activity {
     private static final Region ALL_ESTIMOTE_BEACONS_REGION = new Region("rid", null, null, null);
     private BeaconManager beaconManager;
     int count = 0;
+    double[] oriPos = new double[100000];
     private ImageView[] dotView;
     private int startY = -1;
     private int segmentLength = -1;
@@ -75,12 +76,14 @@ public class HuntingExploreActivity extends Activity {
    int limit = 0, limit2= 0, limit3= 0,limit4 =0, limit5= 0, limit6=0;
     String strWebServiceReturnResult;
     HashSet<Integer> detected ;
+    ArrayList<Beacon> tempListForBL, tempListForBs;
    ArrayList<Beacon> bs ;
     int retrievedMajor = 0;
-    int j= 0;
+    int called= 1;
     SharedPreferences sp ;
     FrameLayout fl ;
     static Dialog dialog;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -89,6 +92,8 @@ public class HuntingExploreActivity extends Activity {
         beaconsList = new ArrayList<>();
         beaconManager = new BeaconManager(this);
         detected = new HashSet<Integer>();
+        tempListForBL = new ArrayList<>();
+        tempListForBs = new ArrayList<>();
         bs = new ArrayList<Beacon>();
         dotView = new ImageView[100000];
         fl = (FrameLayout) findViewById(R.id.frame);
@@ -182,46 +187,97 @@ public class HuntingExploreActivity extends Activity {
                                 Log.d("added beacon", rangedbeacon.getMajor() + "");
                             }
                         }
-                        for (Beacon rangedBeacon : beaconsList) {
-
-                            //updateDistanceView(rangedBeacon);
-                            Log.d("updated the distance", "updated beacon distance major " + rangedBeacon.getMajor());
-                        }
+                        /*if(bs != null) {
+                            for (Beacon rangedBeacon : bs) {
+                                updateDistanceView(rangedBeacon,dotView[rangedBeacon.getMajor()]);
+                                Log.d("updated the distance", "updated beacon distance major " + rangedBeacon.getMajor());
+                            }
+                        }*/
                     }
 
                 });
                 Log.d("destination", "I reached here!!!");
 
+                //Create and find the the position of dotView.
                 for(Beacon beacon: beaconsList) {
+
 
                     if (!bs.contains(beacon)) {
                         bs.add(beacon);
-                        dotView[beacon.getMajor()] = new ImageView(HuntingExploreActivity.this); // dotView created here....
+                       /* dotView[beacon.getMajor()] = new ImageView(HuntingExploreActivity.this);// dotView created here....
+                        Log.d("new DotView", "New dotView Created");
                         findBeaconLocation(beacon, dotView[beacon.getMajor()]);
-                        Log.d("added the dotview", "updated beacon dotview major" + beacon.getMajor());
+                        Log.d("added the dotview", "updated beacon dotview major" + beacon.getMajor());*/
+                    }else{
+                        continue;
                     }
+
                 }
+                double[] newPos = new double[100000];
+                //Remove the dotView which are not inside the list of beacons.
                 for(Beacon bc: bs){
+                    if(beacons.contains(bc)) {
+                        newPos[bc.getMajor()] = computeDotPosY(bc);
+                        if (oriPos != newPos) {
+                            fl.removeView(dotView[bc.getMajor()]);
+                            Log.d("OriPos vs NewPos", "OriPOS " + oriPos + " vs NewPos " + newPos);
+                            dotView[bc.getMajor()] = new ImageView(HuntingExploreActivity.this);// dotView created here....
+                            Log.d("new DotView", "New dotView Created");
+                            findBeaconLocation(bc, dotView[bc.getMajor()]);
+                            Log.d("added the dotview", "updated beacon dotview major" + bc.getMajor());
+                        }else  {
+                            continue;
+                        }
+                    }
                     if(!beacons.contains(bc)){
                         fl.removeView(dotView[bc.getMajor()]);
                         Log.d("RemoveView", "View Removed");
-                       /* beaconsList.remove(bc);
-                        bs.remove(bc);*/
                     }
+                   /* if(!beacons.contains(bc)){
+                        fl.removeView(dotView[bc.getMajor()]);
+                        Log.d("RemoveView", "View Removed");
+                    }
+*/
                 }
+            /*    if(tempListForBs!=null) {
+                    for(Beacon b : tempListForBs){
+                        if(!beacons.contains(b)) {
+                            fl.removeView(dotView[b.getMajor()]);
+                            Log.d("RemoveView", "View Removed");
+                        }
+                    }
+                }*/
+
+                //remove beacon on beaconList.
                 Iterator<Beacon> removeBeaconL = beaconsList.iterator();
+              //  tempListForBL = beaconsList;
                 while(removeBeaconL.hasNext()){
                     Beacon b = removeBeaconL.next();
                     if(!beacons.contains(b)){
                         removeBeaconL.remove();
-                    }
+                    }else
+                        if (oriPos != newPos) { // problem here....remove anyhow caused cant detect properly
+                            removeBeaconL.remove();
+                        }else{
+                            continue;
+                        }
+
                 }
+
+                //remove beacon on bs.
                 Iterator<Beacon> removeBeaconbs = bs.iterator();
+              //  tempListForBs = bs;
                 while(removeBeaconbs.hasNext()){
                     Beacon b = removeBeaconbs.next();
-                    if(!beacons.contains(b)){
+                    if(!beacons.contains(b) ){
                         removeBeaconbs.remove();
-                    }
+                    }else
+                        if (oriPos != newPos) {
+                            removeBeaconbs.remove();
+                        }else{
+                            continue;
+                        }
+
                 }
             }
 
@@ -389,13 +445,13 @@ public class HuntingExploreActivity extends Activity {
                         // dotView = findViewById(R.id.dot);
                         dotView.setVisibility(View.VISIBLE);
                         dotView.setTranslationY(computeDotPosY(beacon));
-
+                        oriPos[beacon.getMajor()] = computeDotPosY(beacon);
                         fl.addView(dotView);
+                        Log.d("added layoutView", "added dotView to layout");
 
                     }
 
                 });
-        j++;
     }
 
 
@@ -425,11 +481,11 @@ public class HuntingExploreActivity extends Activity {
         startActivity(last);
     }
 
-    private void updateDistanceView(Beacon foundBeacon) {
+    private void updateDistanceView(Beacon foundBeacon, ImageView dotView) {
         if (segmentLength == -1) {
             return;
         }
-       // dotView.animate().translationY(computeDotPosY(foundBeacon)).start();
+        dotView.animate().translationY(computeDotPosY(foundBeacon)).start();
     }
 
     private int computeDotPosY(Beacon beacon) {
