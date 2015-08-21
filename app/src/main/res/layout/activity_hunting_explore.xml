@@ -47,37 +47,6 @@
                 android:scaleType="fitCenter"
                 android:src="@drawable/paperboats">
             </ImageView>
-            <ImageView
-                android:id="@+id/paperBoats3"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/paperboats">
-            </ImageView>
-            <ImageView
-                android:id="@+id/paperBoats4"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/paperboats"
-                >
-            </ImageView>
-            <ImageView
-                android:id="@+id/paperBoats5"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/paperboats">
-            </ImageView>
-
-            <ImageView
-                android:id="@+id/paperBoats6"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/paperboats"
-                >
-            </ImageView>
 
         </LinearLayout>
         <FrameLayout

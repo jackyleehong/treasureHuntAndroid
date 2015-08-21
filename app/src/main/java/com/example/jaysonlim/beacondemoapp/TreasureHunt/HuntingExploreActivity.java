@@ -73,9 +73,8 @@ public class HuntingExploreActivity extends Activity {
     private int segmentLength = -1;
     private static final int REQUEST_ENABLE_BT = 1234;
     private ArrayList<Beacon> beaconsList;
-   int limit = 0, limit2= 0, limit3= 0,limit4 =0, limit5= 0, limit6=0;
     String strWebServiceReturnResult;
-    HashSet<Integer> detected ;
+   ArrayList<Integer> detected ;
     ArrayList<Beacon> tempListForBL, tempListForBs;
    ArrayList<Beacon> bs ;
     int retrievedMajor = 0;
@@ -83,6 +82,7 @@ public class HuntingExploreActivity extends Activity {
     SharedPreferences sp ;
     FrameLayout fl ;
     static Dialog dialog;
+    ArrayList<Integer> list;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,8 +91,8 @@ public class HuntingExploreActivity extends Activity {
         setContentView(R.layout.activity_hunting_explore);
         beaconsList = new ArrayList<>();
         beaconManager = new BeaconManager(this);
-
-        detected = new HashSet<Integer>();
+        list = new ArrayList<Integer>();
+        detected = new ArrayList<>();
         tempListForBL = new ArrayList<>();
         tempListForBs = new ArrayList<>();
         bs = new ArrayList<Beacon>();
@@ -122,8 +122,6 @@ public class HuntingExploreActivity extends Activity {
           //  beaconManager.setForegroundScanPeriod(700, 500);
             connectToService();
             beaconDiscoveredAction();
-
-
         }
     }
     @Override
@@ -182,7 +180,7 @@ public class HuntingExploreActivity extends Activity {
 
                         getActionBar().setSubtitle("Found beacons: " + beacons.size());
 
-                        //remove beacon on bs.
+                        //remove beacon on bs list if position changed.
                         Iterator<Beacon> removeBeaconbs = bs.iterator();
                         //  tempListForBs = bs;
                         while(removeBeaconbs.hasNext()){
@@ -195,7 +193,6 @@ public class HuntingExploreActivity extends Activity {
                             }else{
                                 continue;
                             }
-
                         }
                         //fixed list for used to compare whether th beacon is out of range.
                         for (Beacon rangedbeacon : beacons) {
@@ -214,7 +211,6 @@ public class HuntingExploreActivity extends Activity {
 
                 //Create and update the the position of dotView.
                 for(Beacon beacon: beacons) {
-
 
                     if (!bs.contains(beacon)) {
                         bs.add(beacon);
@@ -241,26 +237,54 @@ public class HuntingExploreActivity extends Activity {
 
                 }
 
-                for(Beacon bc : beaconsList) {
-                    if (!beacons.contains(bc)) {
-                        fl.removeView(dotView[bc.getMajor()]);
-                        Log.d("RemoveView", "View Removed");
-                    }
-                }
-
-
-                //remove beacon on beaconList.
+                //remove out of ranged dotView and beacon on beaconList.
                 Iterator<Beacon> removeBeaconL = beaconsList.iterator();
               //  tempListForBL = beaconsList;
                 while(removeBeaconL.hasNext()) {
                     Beacon b = removeBeaconL.next();
                     if (!beacons.contains(b)) {
+                        fl.removeView(dotView[b.getMajor()]);
                         removeBeaconL.remove();
+                    }else{
+                        Random rnd = new Random();
+                        final int greenVals = rnd.nextInt(256);
+                        final int blueVals = rnd.nextInt(256);
+                        if(count >=2) {
+                            finishHunting();
+                        }
+                        if (count < 2 && (!detected.contains(b.getMajor()))) {
+
+                                ImageView paperBoat = (ImageView) dialog.findViewById(R.id.paperBoats);
+                                paperBoat.setColorFilter(Color.rgb(255, greenVals, blueVals));
+
+                                TextView tw = (TextView) dialog.findViewById(R.id.beaconID);
+                                tw.setText(b.getMajor()+ "");
+                                if(!detected.contains(b.getMajor())) {
+                                    //storeTempBeacon(b.getMajor());
+                                    detected.add(b.getMajor());
+                                    Log.d("added to list", "detected " + b.getMajor());
+                                }
+                                Button claimBtn = (Button) dialog.findViewById(R.id.claimBtn);
+                                claimBtn.setOnClickListener(new View.OnClickListener() {
+
+                                    @Override
+                                    public void onClick(View v) {
+
+                                        dialog.dismiss();
+                                        updatePaperBoat(count, greenVals, blueVals);
+                                        count++;
+                                        Log.d("Count", "Count NO : " + count);
+
+                                    }
+                                });
+
+                            } else{
+                                continue;
+                            }
+                            dialog.show();
                     }
 
                 }
-
-
             }
 
         });
@@ -394,13 +418,7 @@ public class HuntingExploreActivity extends Activity {
                             }*/
 
 
-
-
-
-
-
     }
-
 
     public void findBeaconLocation( final Beacon beacon, final ImageView dotView) {
 
@@ -440,15 +458,12 @@ public class HuntingExploreActivity extends Activity {
         List<ImageView> paperBoats = new ArrayList<ImageView>();
         paperBoats.add((ImageView) findViewById(R.id.paperBoats1));
         paperBoats.add((ImageView) findViewById(R.id.paperBoats2));
-        paperBoats.add((ImageView) findViewById(R.id.paperBoats3));
-        paperBoats.add((ImageView) findViewById(R.id.paperBoats4));
-        paperBoats.add((ImageView) findViewById(R.id.paperBoats5));
-        paperBoats.add((ImageView) findViewById(R.id.paperBoats6));
+       /* paperBoats.add((ImageView) findViewById(R.id.paperBoats3));*/
 
         ImageView[] arrPB = new ImageView[paperBoats.size()];
         paperBoats.toArray(arrPB);
 
-        if (count < 6 ) {
+        if (count < 2 ) {
             EditText et = (EditText)findViewById(R.id.counter);
             int counter = count + 1;
             et.setText("" + counter + "");
@@ -460,13 +475,6 @@ public class HuntingExploreActivity extends Activity {
     public void finishHunting(){
         Intent last = new Intent(HuntingExploreActivity.this,FinishHuntingActivity.class);
         startActivity(last);
-    }
-
-    private void updateDistanceView(Beacon foundBeacon, ImageView dotView) {
-        if (segmentLength == -1) {
-            return;
-        }
-        dotView.animate().translationY(computeDotPosY(foundBeacon)).start();
     }
 
     private int computeDotPosY(Beacon beacon) {
@@ -516,7 +524,7 @@ public class HuntingExploreActivity extends Activity {
 
     }
 
-    public HashSet<Integer> retrieveTempBeacon(){
+    public ArrayList<Integer> retrieveTempBeacon(){
         for(int d :detected){
             Log.d("storedMAJOR", d + "");
         }
