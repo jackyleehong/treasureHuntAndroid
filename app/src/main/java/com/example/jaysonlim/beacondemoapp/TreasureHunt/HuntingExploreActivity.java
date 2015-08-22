@@ -83,6 +83,7 @@ public class HuntingExploreActivity extends Activity {
     FrameLayout fl ;
     static Dialog dialog;
     ArrayList<Integer> list;
+    double distance=0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -178,7 +179,7 @@ public class HuntingExploreActivity extends Activity {
                     @Override
                     public void run() {
 
-                        getActionBar().setSubtitle("Found beacons: " + beacons.size());
+                        getActionBar().setSubtitle("Found " + + beacons.size()+ " beacons ");
 
                         //remove beacon on bs list if position changed.
                         Iterator<Beacon> removeBeaconbs = bs.iterator();
@@ -188,7 +189,7 @@ public class HuntingExploreActivity extends Activity {
                             if(!beacons.contains(b) ){
                                 removeBeaconbs.remove();
                             }else
-                            if (oriPos != newPos) {
+                            if (oriPos != newPos || oriPos == newPos) {
                                 removeBeaconbs.remove();
                             }else{
                                 continue;
@@ -220,68 +221,140 @@ public class HuntingExploreActivity extends Activity {
 
                 }
                 //Remove the dotView which are not inside the list of beacons.
-                for(Beacon bc: bs){
+                for(final Beacon bc: bs){
                     if(beacons.contains(bc)) {
                         newPos[bc.getMajor()] = computeDotPosY(bc);
-                        if (oriPos != newPos) {
+                        if (oriPos != newPos  || oriPos == newPos) {
                             fl.removeView(dotView[bc.getMajor()]);
                             Log.d("OriPos vs NewPos", "OriPOS " + oriPos + " vs NewPos " + newPos);
                             dotView[bc.getMajor()] = new ImageView(HuntingExploreActivity.this);// dotView created here....
                             Log.d("new DotView", "New dotView Created");
                             findBeaconLocation(bc, dotView[bc.getMajor()]);
+                            distance = Utils.computeAccuracy(bc);
                             Log.d("added the dotview", "updated beacon dotview major" + bc.getMajor());
-                        }else  {
-                            continue;
+                        }
+                        if(beacons.contains(bc)) {
+                            StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+                            StrictMode.setThreadPolicy(policy);
+                            String uuid = bc.getProximityUUID();
+                            int major = bc.getMajor();
+                            int minor = bc.getMinor();
+
+                            String POST_PARAMS = "uuid=" + uuid + "&major=" + major + "&minor=" + minor;
+                            //String POST_PARAMS = "param1=abc";
+                            URL obj = null;
+                            HttpURLConnection con = null;
+                            try {
+                                obj = new URL("http://cheangtk.cloudapp.net/ibeacon-android/GetRandomBeacon.php");
+                                Log.d("Sent URL", "Successful");
+                                con = (HttpURLConnection) obj.openConnection();
+                                con.setRequestMethod("POST");
+                                Log.d("Posted", "Successful");
+                                // For POST only - BEGIN
+                                con.setDoOutput(true);
+                                Log.d("OutputSet", "Successful");
+                                OutputStream os = con.getOutputStream();
+                                Log.d("gotOutputStream", "Successful");
+                                os.write(POST_PARAMS.getBytes());
+                                Log.d("wrote", "Successful");
+                                os.flush();
+                                os.close();
+                                Log.d("success", "Success");
+
+                                int responseCode = con.getResponseCode();
+                                Log.i(TAG, "POST Response Code :: " + responseCode);
+
+                                if (responseCode == HttpURLConnection.HTTP_OK) { //success
+                                    BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+                                    String inputLine;
+                                    StringBuffer response = new StringBuffer();
+
+                                    while ((inputLine = in.readLine()) != null) {
+                                        response.append(inputLine);
+                                    }
+                                    in.close();
+
+                                    strWebServiceReturnResult = response.toString();
+                                    // print result
+                                    Log.i(TAG, "strWebServiceReturnResult is " + strWebServiceReturnResult);
+                                    JSONArray jsonArray = new JSONArray(strWebServiceReturnResult);
+
+                                    //Log.i(TAG, "jsonArray  is " + jsonArray);
+
+                                    for (int k = 0; k < jsonArray.length(); k++) {
+                                        JSONObject json_data = jsonArray.getJSONObject(k);
+                                        retrievedMajor = json_data.getInt("major");//suppose get the major from here.
+                                        // .. get all value here
+                                        Log.i("major", retrievedMajor + "");
+                                    }
+                                }
+                                // For POST only - END
+
+                                Random rnd = new Random();
+                                final int redVals = rnd.nextInt(1|255);
+                                final int greenVals = rnd.nextInt(1|255);
+                                final int blueVals = rnd.nextInt(1 | 255);
+                                if (count >= 2) {
+                                    finishHunting();
+                                }
+
+
+                                Log.d("distance", Utils.computeAccuracy(bc) + " " + bc.getMajor());
+                                if (count < 2 && (!detected.contains(bc.getMajor())) && distance<=0.7) {
+
+
+                                    ImageView paperBoat = (ImageView) dialog.findViewById(R.id.paperBoats);
+                                    paperBoat.setColorFilter(Color.rgb(redVals, greenVals, blueVals));
+
+                                    TextView tw = (TextView) dialog.findViewById(R.id.beaconID);
+                                    tw.setText(bc.getMajor() + "");
+                                    //if(!detected.contains(b.getMajor())) {
+                                    //storeTempBeacon(b.getMajor());
+                                    Log.d("detected list container", "detected " + bc.getMajor());
+
+                                    // }
+                                    Button claimBtn = (Button) dialog.findViewById(R.id.claimBtn);
+                                    claimBtn.setOnClickListener(new View.OnClickListener() {
+
+                                        @Override
+                                        public void onClick(View v) {
+
+                                            dialog.dismiss();
+                                            updatePaperBoat(count,redVals, greenVals, blueVals);
+                                            detected.add(bc.getMajor());
+                                            count++;
+                                            Log.d("Count", "Count NO : " + count);
+
+                                        }
+                                    });
+                                    dialog.show();
+
+                                } else {
+                                    continue;
+                                }
+
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                                Log.d("failed", "failed");
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
                         }
                     }
 
                 }
-
                 //remove out of ranged dotView and beacon on beaconList.
                 Iterator<Beacon> removeBeaconL = beaconsList.iterator();
               //  tempListForBL = beaconsList;
                 while(removeBeaconL.hasNext()) {
-                    Beacon b = removeBeaconL.next();
+                  final Beacon b = removeBeaconL.next();
                     if (!beacons.contains(b)) {
                         fl.removeView(dotView[b.getMajor()]);
                         removeBeaconL.remove();
-                    }else{
-                        Random rnd = new Random();
-                        final int greenVals = rnd.nextInt(256);
-                        final int blueVals = rnd.nextInt(256);
-                        if(count >=2) {
-                            finishHunting();
-                        }
-                        if (count < 2 && (!detected.contains(b.getMajor()))) {
+                        Log.d("Removed Beacon", b.getMajor() + " removed.");
+                    } else{
+                       continue;
 
-                                ImageView paperBoat = (ImageView) dialog.findViewById(R.id.paperBoats);
-                                paperBoat.setColorFilter(Color.rgb(255, greenVals, blueVals));
-
-                                TextView tw = (TextView) dialog.findViewById(R.id.beaconID);
-                                tw.setText(b.getMajor()+ "");
-                                if(!detected.contains(b.getMajor())) {
-                                    //storeTempBeacon(b.getMajor());
-                                    detected.add(b.getMajor());
-                                    Log.d("added to list", "detected " + b.getMajor());
-                                }
-                                Button claimBtn = (Button) dialog.findViewById(R.id.claimBtn);
-                                claimBtn.setOnClickListener(new View.OnClickListener() {
-
-                                    @Override
-                                    public void onClick(View v) {
-
-                                        dialog.dismiss();
-                                        updatePaperBoat(count, greenVals, blueVals);
-                                        count++;
-                                        Log.d("Count", "Count NO : " + count);
-
-                                    }
-                                });
-
-                            } else{
-                                continue;
-                            }
-                            dialog.show();
                     }
 
                 }
@@ -453,8 +526,7 @@ public class HuntingExploreActivity extends Activity {
                 });
     }
 
-
-    public void updatePaperBoat(int count, int green, int blue){
+    public void updatePaperBoat(int count,int red, int green, int blue){
         List<ImageView> paperBoats = new ArrayList<ImageView>();
         paperBoats.add((ImageView) findViewById(R.id.paperBoats1));
         paperBoats.add((ImageView) findViewById(R.id.paperBoats2));
@@ -467,7 +539,7 @@ public class HuntingExploreActivity extends Activity {
             EditText et = (EditText)findViewById(R.id.counter);
             int counter = count + 1;
             et.setText("" + counter + "");
-            arrPB[count].setColorFilter(Color.rgb(255, green, blue));
+            arrPB[count].setColorFilter(Color.rgb(red, green, blue));
 
         }
     }
@@ -475,6 +547,7 @@ public class HuntingExploreActivity extends Activity {
     public void finishHunting(){
         Intent last = new Intent(HuntingExploreActivity.this,FinishHuntingActivity.class);
         startActivity(last);
+        finish();
     }
 
     private int computeDotPosY(Beacon beacon) {

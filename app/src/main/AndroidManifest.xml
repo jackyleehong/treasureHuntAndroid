@@ -67,7 +67,11 @@
         </activity>
         <activity
             android:name=".TreasureHunt.FinishHuntingActivity"
-            android:label="@string/title_activity_finish_hunting" >
+            android:label="@string/title_activity_finish_hunting"
+            android:parentActivityName="com.example.jaysonlim.beacondemoapp.MainActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="com.example.jaysonlim.beacondemoapp.MainActivity"/>
         </activity>
 
         <meta-data
